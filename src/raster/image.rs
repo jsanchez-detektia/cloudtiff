@@ -1,6 +1,8 @@
 #![cfg(feature = "image")]
 
-use super::{photometrics::PhotometricInterpretation as Style, ExtraSamples, RasterError, SampleFormat};
+use super::{
+    photometrics::PhotometricInterpretation as Style, ExtraSamples, RasterError, SampleFormat,
+};
 use crate::raster::Raster;
 use crate::tiff::Endian;
 use image::{DynamicImage, ImageBuffer, Rgba};
@@ -69,6 +71,19 @@ impl TryInto<DynamicImage> for Raster {
                 ImageBuffer::from_raw(width, height, buffer)
                     .map(|ib| DynamicImage::ImageRgba32F(ib))
             }),
+            [32] => endian.decode_all(&buffer).and_then(|buffer: Vec<f32>| {
+                // Here buffer is f32 pixels. There's no DynamicImage variant for f32 grayscale directly.
+                // You could convert them to 8-bit or 16-bit by scaling and casting before creating an image.
+
+                // For example, convert f32 to u8:
+                let scaled: Vec<u8> = buffer
+                    .iter()
+                    .map(|f| {
+                        (((f + 0.037346) / (0.03628 + 0.037346)).clamp(0.0, 1.0) * 255.0) as u8
+                    })
+                    .collect();
+                ImageBuffer::from_raw(width, height, scaled).map(DynamicImage::ImageLuma8)
+            }),
             _ => None,
         }
         .ok_or("Not Supported".to_string())
@@ -78,6 +93,29 @@ impl TryInto<DynamicImage> for Raster {
 impl Raster {
     pub fn into_image(self) -> Result<DynamicImage, String> {
         self.try_into()
+    }
+
+    pub fn to_f32_array(&self) -> Result<Vec<f32>, String> {
+        let Raster {
+            dimensions: (width, height),
+            buffer,
+            bits_per_sample,
+            endian,
+            ..
+        } = self;
+
+        // Check that bits_per_sample is what we expect
+        if bits_per_sample.as_slice() == [32] {
+            // Decode endianness
+            let data: Vec<f32> = endian
+                .decode_all(buffer)
+                .ok_or("Failed to decode endianness")?;
+
+            // `data` now contains width*height f32 values
+            Ok(data)
+        } else {
+            Err("Unsupported bits_per_sample configuration for f32 conversion".to_string())
+        }
     }
 
     pub fn from_image(img: &DynamicImage) -> Result<Self, RasterError> {

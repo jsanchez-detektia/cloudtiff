@@ -103,9 +103,12 @@ impl AsyncRead for HttpReader {
             }
             Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
             Poll::Ready(Ok(bytes)) => {
-                let n = bytes.len().max(buf.remaining());
+                // let n = bytes.len().max(buf.remaining());
+                // let target = buf.initialize_unfilled_to(n);
+                // target.copy_from_slice(&bytes[..]);
+                let n = std::cmp::min(bytes.len(), buf.remaining());
                 let target = buf.initialize_unfilled_to(n);
-                target.copy_from_slice(&bytes[..]);
+                target.copy_from_slice(&bytes[..n]);
                 buf.advance(n);
                 self.position += n as u64;
                 Poll::Ready(Ok(()))

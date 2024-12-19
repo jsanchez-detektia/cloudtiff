@@ -23,7 +23,9 @@ async fn main() {
 
     // Ask to use AWS credentials
     let consent: &str = "ok";
-    print!(r#"This example will use your default AWS environmental credentials to make a request. Type "{consent}" to continue: "#);
+    print!(
+        r#"This example will use your default AWS environmental credentials to make a request. Type "{consent}" to continue: "#
+    );
     io::stdout().flush().unwrap();
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
@@ -41,7 +43,7 @@ async fn main() {
     let client = Client::from_conf(config);
     let reader = S3Reader::new(client, BUCKET_NAME, OBJECT_NAME);
 
-    // Use S3 Reader to read a cloud tiff 
+    // Use S3 Reader to read a cloud tiff
     handler(reader).await;
 }
 
