@@ -646,6 +646,7 @@ dependencies = [
  "futures",
  "image",
  "ndarray",
+ "num-complex",
  "num-traits",
  "num_enum",
  "proj4rs",

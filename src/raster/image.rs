@@ -24,7 +24,7 @@ impl Raster {
         })
     }
 }
-
+use num_complex::Complex32;
 impl TryInto<DynamicImage> for Raster {
     type Error = String;
 
@@ -94,6 +94,26 @@ impl Raster {
     pub fn into_image(self) -> Result<DynamicImage, String> {
         self.try_into()
     }
+    pub fn to_bool_array(&self) -> Result<Vec<u8>, String> {
+        let Raster {
+            dimensions: (width, height),
+            buffer,
+            bits_per_sample,
+            endian,
+            ..
+        } = self;
+
+        // Check that bits_per_sample is what we expect
+        if bits_per_sample.as_slice() == [8] {
+            // Decode endianness
+            let data: Vec<u8> = buffer.clone();
+
+            // `data` now contains width*height f32 values
+            Ok(data)
+        } else {
+            Err("Unsupported bits_per_sample configuration for f32 conversion".to_string())
+        }
+    }
 
     pub fn to_f32_array(&self) -> Result<Vec<f32>, String> {
         let Raster {
@@ -115,6 +135,48 @@ impl Raster {
             Ok(data)
         } else {
             Err("Unsupported bits_per_sample configuration for f32 conversion".to_string())
+        }
+    }
+
+    pub fn to_complex32_array(&self) -> Result<Vec<Complex32>, String> {
+        let Raster {
+            dimensions: (width, height),
+            buffer,
+            bits_per_sample,
+            sample_format,
+            endian,
+            ..
+        } = self;
+
+        // Check if we have a complex IEEE float sample.
+        // ComplexIEEE is usually sample_format = [6].
+        // bits_per_sample = [64] means each pixel is 8 bytes = two f32 values.
+
+        if sample_format.as_slice() == [SampleFormat::ComplexFloat]
+            && bits_per_sample.as_slice() == [64]
+        {
+            // Decode endianness. The result should be width*height*2 f32 values.
+            let data: Vec<f32> = endian
+                .decode_all(buffer)
+                .ok_or("Failed to decode endianness for complex data")?;
+
+            let pixel_count = (width * height) as usize;
+            if data.len() != pixel_count * 2 {
+                return Err(format!(
+                    "Data length mismatch. Got {}, expected {}",
+                    data.len(),
+                    pixel_count * 2
+                ));
+            }
+
+            let mut complex_data = Vec::with_capacity(pixel_count);
+            for chunk in data.chunks_exact(2) {
+                complex_data.push(Complex32::new(chunk[0], chunk[1]));
+            }
+
+            Ok(complex_data)
+        } else {
+            Err("Unsupported bits_per_sample or sample_format configuration for complex f32 conversion".to_string())
         }
     }
 

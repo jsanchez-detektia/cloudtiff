@@ -15,6 +15,7 @@ s3 = ["async", "aws-config", "aws-sdk-s3"]
 opt-level = 3
 
 [dependencies]
+num-complex = "0.4"
 eio = "0.1.2"
 flate2 = { version = "1.0.34", features = [
     "zlib-ng",

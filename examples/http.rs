@@ -7,7 +7,7 @@ use ndarray;
 use std::time::Instant;
 use tokio;
 // const URL: &str = "http://sentinel-cogs.s3.amazonaws.com/sentinel-s2-l2a-cogs/9/U/WA/2024/8/S2A_9UWA_20240806_0_L2A/TCI.tif";
-const URL: &str = "http://localhost:5000/shared/test1.tif";
+const URL: &str = "http://localhost:5000/shared/20180105.slc.tif";
 const OUTPUT_FILE: &str = "data/http_custom.jpg";
 const PREVIEW_MEGAPIXELS: f64 = 1.0;
 
@@ -42,16 +42,18 @@ async fn handler() {
     println!("{}", preview);
 
     // Image
-    let img: DynamicImage = preview.clone().try_into().unwrap();
-    let test = img.as_bytes().as_ref();
-    let data = preview.to_f32_array().unwrap();
+    // let img: DynamicImage = preview.clone().try_into().unwrap();
+    // let test = img.as_bytes().as_ref();
+    let data = preview.to_complex32_array().unwrap();
+    preview.to_bool_array();
+    preview.to_f32_array();
 
     // Now `data` is a Vec<f32> you can work with directly.
     let (height, width) = preview.dimensions;
     let array = ndarray::Array2::from_shape_vec((height as usize, width as usize), data)
         .expect("Failed to reshape data");
-    let scaled: Vec<f32> = array.iter().map(|f| f.clamp(-1.0, 1.0)).collect();
-    println!("{:?}", scaled);
-    img.save(OUTPUT_FILE).unwrap();
+    // let scaled: Vec<f32> = array.iter().map(|f| f.clamp(-1.0, 1.0)).collect();
+    println!("{:?}", array);
+    // img.save(OUTPUT_FILE).unwrap();
     println!("Image saved to {OUTPUT_FILE}");
 }
