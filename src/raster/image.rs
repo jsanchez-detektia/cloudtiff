@@ -138,6 +138,29 @@ impl Raster {
         }
     }
 
+    pub fn to_f64_array(&self) -> Result<Vec<f64>, String> {
+        let Raster {
+            dimensions: (width, height),
+            buffer,
+            bits_per_sample,
+            endian,
+            ..
+        } = self;
+
+        // Check that bits_per_sample is what we expect
+        if bits_per_sample.as_slice() == [64] {
+            // Decode endianness
+            let data: Vec<f64> = endian
+                .decode_all(buffer)
+                .ok_or("Failed to decode endianness")?;
+
+            // `data` now contains width*height f32 values
+            Ok(data)
+        } else {
+            Err("Unsupported bits_per_sample configuration for f64 conversion".to_string())
+        }
+    }
+
     pub fn to_complex32_array(&self) -> Result<Vec<Complex32>, String> {
         let Raster {
             dimensions: (width, height),
